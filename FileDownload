@@ -1,0 +1,34 @@
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+@Controller
+public class FileDownloadController {
+
+    private static final String FILE_DIRECTORY = "/path/to/your/files"; // 파일이 저장된 디렉토리 경로
+
+    @GetMapping("/download/{fileName:.+}")
+    public ResponseEntity<Resource> downloadFile(@PathVariable String fileName) throws IOException {
+        Path filePath = Paths.get(FILE_DIRECTORY).resolve(fileName).normalize();
+        Resource resource = new org.springframework.core.io.UrlResource(filePath.toUri());
+
+        if (!resource.exists() || !resource.isReadable()) {
+            // 파일이 존재하지 않거나 읽을 수 없는 경우 예외 처리
+            throw new RuntimeException("File not found or cannot be read: " + fileName);
+        }
+
+        // 파일 다운로드를 위한 Content-Disposition 헤더 설정
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/octet-stream"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
+                .body(resource);
+    }
+}
